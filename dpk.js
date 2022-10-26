@@ -45,6 +45,7 @@ class PartitionKey {
 
     if (!event.partitionKey) {
       this.#candidate = hashData(JSON.stringify(event));
+      this.#hashed = true;
       return;
     }
 
