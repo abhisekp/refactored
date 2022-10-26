@@ -15,3 +15,6 @@ You will be graded on the exhaustiveness and quality of your unit tests, the dep
 - The `hashData` method is now more flexible and can be used to hash data with different algorithms and encodings.
 - The `deterministicPartitionKey` method is now more readable and can be reused in other places.
 - The `deterministicPartitionKey` is now more testable.
+- The method calls are self-descriptive and the flow of `deterministicPartitionKey` function is now more clear and understandable.
+- Constants are exported so that the functions are more testable.
+- Added verbose tests with edge cases.

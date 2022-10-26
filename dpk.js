@@ -21,21 +21,65 @@ exports.MAX_PARTITION_KEY_LENGTH = MAX_PARTITION_KEY_LENGTH;
 const TRIVIAL_PARTITION_KEY = "0";
 exports.TRIVIAL_PARTITION_KEY = TRIVIAL_PARTITION_KEY;
 
+
+function isLongPartitionKey(partitionKey, maxPartitionKeyLength = MAX_PARTITION_KEY_LENGTH) {
+  return partitionKey.length > maxPartitionKeyLength;
+}
+
+exports.isLongPartitionKey = isLongPartitionKey;
+
+class PartitionKey {
+  #hashed = false;
+  #candidate = TRIVIAL_PARTITION_KEY;
+  #hashedPartitionKey = TRIVIAL_PARTITION_KEY;
+
+  static getInstance(...args) {
+    return new PartitionKey(...args);
+  }
+
+  constructor(event) {
+    if (!event) {
+      this.#candidate = TRIVIAL_PARTITION_KEY;
+      return;
+    }
+
+    if (!event.partitionKey) {
+      this.#candidate = hashData(JSON.stringify(event));
+      return;
+    }
+
+    if (typeof event.partitionKey !== "string") {
+      this.#candidate = JSON.stringify(event.partitionKey);
+      return;
+    }
+
+    this.#candidate = event.partitionKey;
+  }
+
+  get #hashedValue() {
+    if (!this.#hashed) {
+      this.#hashedPartitionKey = hashData(this.#candidate);
+      this.#hashed = true;
+    }
+    return this.#hashedPartitionKey;
+  }
+
+  get value() {
+    if (isLongPartitionKey(this.#candidate)) {
+      return this.#hashedValue;
+    }
+
+    return this.#candidate;
+  }
+}
+
+/**
+ * @param {object | string} event
+ * @param {any} event.partitionKey
+ * @return {string} partitionKey
+ **/
 exports.deterministicPartitionKey = (event) => {
-  let candidate = JSON.stringify(
-    event?.partitionKey ??
-    hashData(JSON.stringify(event)) ??
-    TRIVIAL_PARTITION_KEY
-  );
-
-  function isLongPartitionKey(partitionKey, maxPartitionKeyLength = MAX_PARTITION_KEY_LENGTH) {
-    return partitionKey.length > maxPartitionKeyLength;
-  }
-
-  if (isLongPartitionKey(candidate)) {
-    candidate = hashData(JSON.stringify(candidate));
-  }
-  return candidate;
+  return PartitionKey.getInstance(event).value;
 };
 
 exports.deterministicPartitionKeyOriginal = (event) => {
@@ -59,7 +103,7 @@ exports.deterministicPartitionKeyOriginal = (event) => {
   } else {
     candidate = TRIVIAL_PARTITION_KEY;
   }
-  console.log(candidate);
+
   if (candidate.length > MAX_PARTITION_KEY_LENGTH) {
     candidate = crypto.createHash("sha3-512").update(candidate).digest("hex");
   }

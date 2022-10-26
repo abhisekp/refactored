@@ -1,4 +1,9 @@
-const { deterministicPartitionKey, hashData, TRIVIAL_PARTITION_KEY } = require("./dpk");
+const {
+  // deterministicPartitionKeyOriginal: deterministicPartitionKey,
+  deterministicPartitionKey,
+  hashData,
+  TRIVIAL_PARTITION_KEY
+} = require("./dpk");
 
 describe("deterministicPartitionKey", () => {
   it("Returns the literal '0' when given no input", () => {
@@ -12,7 +17,7 @@ describe("deterministicPartitionKey", () => {
     };
     const key = deterministicPartitionKey(event);
     expect(key).toBe("foo");
-  })
+  });
 
   it("with non-string partitionKey", () => {
     const event = {
@@ -20,15 +25,51 @@ describe("deterministicPartitionKey", () => {
     };
     const key = deterministicPartitionKey(event);
     expect(key).toBe("123");
-  })
+  });
+
+  it("with non-string partitionKey with zero value", () => {
+    const event = {
+      partitionKey: 0
+    };
+    const key = deterministicPartitionKey(event);
+    expect(key).toBe(hashData(JSON.stringify(event)));
+  });
+
+  it("with non-string partitionKey object", () => {
+    const event = {
+      partitionKey: { foo: "bar" }
+    };
+    const key = deterministicPartitionKey(event);
+    expect(key).toBe(JSON.stringify(event.partitionKey));
+  });
 
   it("with longer non-string partitionKey", () => {
     const event = {
       partitionKey: 1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-    }
+    };
     const key = deterministicPartitionKey(event);
     expect(key).toBe(JSON.stringify(event.partitionKey));
-  })
+  });
+
+  it("with longer non-string partitionKey object", () => {
+    const event = {
+      partitionKey: {
+        foo: "bar".repeat(100)
+      }
+    };
+    const key = deterministicPartitionKey(event);
+    expect(key).toBe(hashData(JSON.stringify(event.partitionKey)));
+  });
+
+  it("with short non-string partitionKey object", () => {
+    const event = {
+      partitionKey: {
+        foo: "bar"
+      }
+    };
+    const key = deterministicPartitionKey(event);
+    expect(key).toBe(JSON.stringify(event.partitionKey));
+  });
 
   it("with longer partitionKey", () => {
     const event = {
@@ -36,15 +77,21 @@ describe("deterministicPartitionKey", () => {
     };
     const key = deterministicPartitionKey(event);
     expect(key).toBe(hashData(event.partitionKey));
-  })
+  });
 
   it("with no partitionKey", () => {
     const event = {
       foo: "bar"
-    }
+    };
     const key = deterministicPartitionKey(event);
     expect(key).toBe(hashData(JSON.stringify(event)));
-  })
+  });
+
+  it("with null event", () => {
+    const event = null;
+    const key = deterministicPartitionKey(event);
+    expect(key).toBe(TRIVIAL_PARTITION_KEY);
+  });
 });
 
 describe("hashData", () => {
